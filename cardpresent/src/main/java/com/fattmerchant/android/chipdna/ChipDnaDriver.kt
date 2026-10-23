@@ -344,6 +344,12 @@ internal class ChipDnaDriver :
             ChipDnaMobile.getInstance().startTransaction(paymentRequestParams)
         }
 
+        if (saleOutcome(result[ParameterKeys.TransactionResult]) == SaleOutcome.RESULT_NOT_KNOWN) {
+            val userRef = result[ParameterKeys.UserReference] ?: paymentRequestParams[ParameterKeys.UserReference]
+            log("Transaction result ${result[ParameterKeys.TransactionResult]} for user reference $userRef")
+            throw PerformTransactionException("Transaction result unknown. Check transaction $userRef before you retry.")
+        }
+
         // Check for errors
         if (result.containsKey(ParameterKeys.Errors)) {
             // Transaction was _not_ declined. Handle error accordingly
@@ -402,7 +408,7 @@ internal class ChipDnaDriver :
             cardExpiration = ccExpiration
             amount = Amount(cents = result[ParameterKeys.Amount]?.toInt() ?: request.amount.cents)
             this.source = this@ChipDnaDriver.source
-            success = result[ParameterKeys.TransactionResult] == ParameterValues.Approved
+            success = saleOutcome(result[ParameterKeys.TransactionResult]) == SaleOutcome.APPROVED
             transactionSource = receiptData[ReceiptFieldKey.TRANSACTION_SOURCE]?.value
             result[ParameterKeys.CustomerVaultId]?.let { token ->
                 paymentToken = "nmi_$token"

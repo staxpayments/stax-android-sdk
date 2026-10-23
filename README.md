@@ -15,7 +15,8 @@ The Fattmerchant Android SDK provides a simple way to accept a payment on your A
 
 ## <a name="requirements">Requirements</a>
 
-* Android sdk version 21
+* Android API 29 (Android 10) or later for cardpresent
+* Android API 23 (Android 6) or later for tokenization
 
 ## <a name="installation">Installation</a>
 
