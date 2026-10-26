@@ -39,6 +39,18 @@ android {
     }
 }
 
+mavenPublishing {
+    pom {
+        licenses {
+            license {
+                name.set("Vendor libraries in libs/: ChipDNA Mobile, CardEase XML Client, ID TECH Universal SDK, BBPOS")
+                distribution.set("repo")
+                comments.set("These libraries are not under the Apache License. Their vendors' terms apply.")
+            }
+        }
+    }
+}
+
 dependencies {
     // NMI Dependencies
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
