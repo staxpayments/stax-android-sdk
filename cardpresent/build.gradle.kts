@@ -43,9 +43,9 @@ mavenPublishing {
     pom {
         licenses {
             license {
-                name.set("Vendor libraries in libs/: ChipDNA Mobile, CardEase XML Client, ID TECH Universal SDK, BBPOS")
+                name.set("Proprietary vendor licenses")
                 distribution.set("repo")
-                comments.set("These libraries are not under the Apache License. Their vendors' terms apply.")
+                comments.set("The jars in libs/ (ChipDNA Mobile, CardEase XML Client, ID TECH Universal SDK, BBPOS) are not under the Apache License. Their vendors' terms apply.")
             }
         }
     }
