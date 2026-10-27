@@ -3,56 +3,23 @@
 
 ## <a name="installation">Installation</a>
 
-#### Jitpack
-To install,
-
-1. Add the JitPack repository to your build file
-
-```
-allprojects {
-  repositories {
-    ...
-    maven { url 'https://jitpack.io' }
-  }
-}
-```
-
-2. Add the following line to your `build.gradle` file
-
-```
-implementation 'com.github.fattmerchantorg:fattmerchant-android-sdk:1.2.0'
-```
+Add `com.staxpayments:cardpresent` from Maven Central. The [root README](../README.md#installation) shows the steps and the current version.
 
 
 ## <a name="getting-started">Getting Started</a>
 
 In order to take mobile reader payments, you will need the following:
 
-* **Ephemeral Omni API Key**: Using your Omni API key, you will need to create an ephemeral token. The cardpresent codebase does not store your token, so you'll need to pass one in every time you create the `Omni` object. [Here](https://fattmerchant.docs.apiary.io/#reference/0/authentication-tokens/generate-an-ephemeral-token) is a helpful guide showing you how to create an ephemeral token
+* **Ephemeral Omni API Key**: Using your Omni API key, you will need to create an ephemeral token. The cardpresent codebase does not store your token, so you'll need to pass one in every time you create the `Omni` object. The [Stax API docs](https://docs.staxpayments.com) show how to create an ephemeral token
 * **App Name**: A name for your app!
 * **Mobile Reader**: A Fattmerchant-provided mobile reader
 
 
 ## Initialize
 
-Create an instance of `InitParams`
+Create an `InitParams` with your app context, your application, and an ephemeral API key. Then call `Omni.initialize`. The [root README](../README.md#getting-started) shows the code in Kotlin and Java.
 
-```kotlin
-var initParams = InitParams(applicationContext, ephemeralApiKey, OmniApi.Environment.DEV)
-```
-
-Pass the initParams to `Omni.initialize(...)`, along with a completion lambda and an error lambda
-
-```kotlin
-Omni.initialize(params, {
-	// Success!
-    System.out.println("Omni is initialized")
-}) {
-	// There was an error
-}
-```
-
-You can now use `Omni.shared()` to get the instance of Omni that you will be using
+After the completion runs, use `Omni.shared()` to get the `Omni` instance.
 
 ## Pairing the Reader
 **Miura M010**
@@ -69,109 +36,96 @@ You can now use `Omni.shared()` to get the instance of Omni that you will be usi
 
 
 ## Connect a Mobile Reader
-Once the reader has been paired, you should be able to find and connect to it using the fattmerchant android sdk
 
-The first step is to search for a list of available readers
+After you pair the reader, find it and connect to it with the SDK. These samples use `com.fattmerchant.android.Omni`.
+
+First, search for the available readers.
 
 ```kotlin
-Omni.shared().getAvailableReaders { readers ->
-	
+Omni.shared()?.getAvailableReaders { readers ->
+    // readers is a List<MobileReader>
 }
 ```
 
-Once you have the list of available ones, you can choose which one you'd like to connect
+Then connect to the reader that you choose.
 
 ```kotlin
-Omni.shared().getAvailableReaders { readers ->
-	Omni.shared().connectReader(mobileReader, onConnected: { reader ->
-		// Reader is connected
-	}, onFail: { error ->
-		// Error connecting reader
-	}
+Omni.shared()?.getAvailableReaders { readers ->
+    val mobileReader = readers.firstOrNull() ?: return@getAvailableReaders
+    Omni.shared()?.connectReader(mobileReader, onConnected = { reader ->
+        // The reader is connected.
+    }, onFail = { error ->
+        // The SDK could not connect the reader. error is a message.
+    })
+}
+```
+
+## Subscribing to Transaction Updates
+
+To receive transaction updates, set a `TransactionUpdateListener` on `Omni` before you take a payment. The listener receives updates such as these:
+
+- `PromptInsertSwipeCard`: the reader waits for a card.
+- `CardSwiped` or `CardInserted`: the customer swiped or inserted a card.
+- `Authorizing`: the payment is being authorized.
+- `PromptProvideSignature`: the payment needs a signature. The SDK sends this update only when you set a `signatureProvider`.
+
+Each update is a `TransactionUpdate` with a `value` and a `userFriendlyMessage`. Use `value` to identify the event. Some updates, such as `CardInserted`, have no `userFriendlyMessage`. If the message is not `null`, you can show it to the user.
+
+```kotlin
+Omni.shared()?.transactionUpdateListener = object : TransactionUpdateListener {
+    override fun onTransactionUpdate(transactionUpdate: TransactionUpdate) {
+        println(transactionUpdate.value)
+        transactionUpdate.userFriendlyMessage?.let { message ->
+            // Show message to the user.
+        }
+    }
+}
+```
+
+## Providing a Signature
+
+If a transaction needs a signature, the SDK calls the `SignatureProviding` that you set on `Omni`. Set it before you take a payment. Give the signature to `completion` as a Base64 string. If you do not set a `signatureProvider`, the SDK continues the payment with no signature.
+
+```kotlin
+Omni.shared()?.signatureProvider = object : SignatureProviding {
+    override fun signatureRequired(completion: (String) -> Unit) {
+        val base64EncodedSignature = captureSignatureAsBase64()
+        completion(base64EncodedSignature)
+    }
 }
 ```
 
 ## Taking a Payment
-To take a payment, simply create a `TransactionRequest` and pass it along to `omni.takeMobileReaderTransaction(...)`
+
+Set the `transactionUpdateListener` and the `signatureProvider` before you call `takeMobileReaderTransaction`. The SDK reads both when the payment starts. If you change them later, the change does not apply to that payment.
+
+To take a payment, create a `TransactionRequest` and pass it to `takeMobileReaderTransaction`. `Amount(cents = 5000)` is $50.00. The completion also receives a declined payment. Give the goods only when `transaction.success == true`.
 
 ```kotlin
-// Create an Amount
-var amount = Amount(50)
-    
-// Create the TransactionRequest
-var request = TransactionRequest(amount)
-    
-// Take the payment
-Omni.shared()?.takeMobileReaderTransaction(request, {
-    // Payment successful!
-}) {
-    // Error
-}
-```
+val amount = Amount(cents = 5000)
+val request = TransactionRequest(amount)
 
-## Subcribing to Transaction Updates
-To receive Transaction updates, register a `TransactionUpdateListener` on the Omni object. This object will receive transaction updates such as:
-
-- `PromptSwipeCard` - The mobile reader is waiting for a card to be swiped
-- `CardSwiped` - A card was swiped on the mobile reader
-- `Authorizing` - The payment is being authorized
-- `PromptProvideSignature` - The payment requires a signature
-
-These will be instances of `TransactionUpdate`, and will each have a `value` and a `userFriendlyMessage`. The `value` is a key you can use to identify the event, and the `userFriendlyMessage` is a string that can be shown to an end user, should you choose to.
-
-```kotlin
-// Register to listen to the transaction events
-Omni.shared()?.transactionUpdateListener = object: TransactionUpdateListener {
-    override fun onTransactionUpdate(transactionUpdate: TransactionUpdate) {
-        print("${transactionUpdate.value} | ${transactionUpdate.userFriendlyMessage}")
+Omni.shared()?.takeMobileReaderTransaction(request, { transaction ->
+    if (transaction.success == true) {
+        // The payment is approved.
+    } else {
+        // The payment is declined.
     }
-}
-
-// Begin the transaction
-Omni.shared()?.takeMobileReaderTransaction(...) 
-```
-
-## Providing a Signature
-Should a transaction require a signature, one can be provided by registering a `SignatureProviding` on the Omni object. This object will be required to implement a method called 
-
-```kotlin
-/**
- * Called when a transaction requires a signature
- *
- * @param completion a block to run once the signature is complete. This should be given the
- * signature as a Base64 encoded string
- */
-fun signatureRequired(completion: (String) -> Unit)
-```
-
-You can then pass a base64 encoded string representation of the signature and pass it to the completion block.
-
-```kotlin
-Omni.shared()?.signatureProvider = object : SignatureProviding {
-  override fun signatureRequired(completion: (String) -> Unit) {
-       var base64EncodedSignature = // ...
-       completion(base64EncodedSignature)
-  }
+}) { error ->
+    // The payment failed. error.message is a summary, and error.detail has the cause.
 }
 ```
-
 
 ## Refunding a Payment
-To refund a payment, you must first get the `Transaction` that you want to refund. You can use the [Omni API](https://fattmerchant.docs.apiary.io/#reference/0/transactions) to do so. 
-Once you get the transaction, you can use the `refundMobileReaderTransaction` method to attempt the refund.
 
-> At this time, you may only refund transactions that were performed on the same device that performed the original transaction 
+To refund a payment, get the `Transaction` from the [Stax API](https://docs.staxpayments.com). Then call `refundMobileReaderTransaction`.
+
+> You can refund a transaction only on the device that took the payment.
 
 ```kotlin
-// Attain a transaction
-var transaction = Transaction()
-    
-// Perform refund
-Omni.shared()?.refundMobileReaderTransaction(transaction, {
-    // Refund successful!
-}) {
-    // Error
+Omni.shared()?.refundMobileReaderTransaction(transaction, { refund ->
+    // The refund is approved.
+}) { error ->
+    // The refund failed. error.message is a summary, and error.detail has the cause.
 }
 ```
-
-

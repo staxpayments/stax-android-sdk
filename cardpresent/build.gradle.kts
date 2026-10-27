@@ -1,21 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    `maven-publish`
-}
-
-group = "com.github.fattmerchantorg"
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                groupId = "com.github.fattmerchantorg"
-                artifactId = "cardpresent"
-                version = "2.7.5"
-            }
-        }
-    }
+    id("com.vanniktech.maven.publish")
 }
 
 android {
@@ -25,6 +11,7 @@ android {
     defaultConfig {
         minSdk = 29
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     packaging {
@@ -49,6 +36,18 @@ android {
                 getDefaultProguardFile("proguard-android.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+}
+
+mavenPublishing {
+    pom {
+        licenses {
+            license {
+                name.set("Proprietary vendor licenses")
+                distribution.set("repo")
+                comments.set("The jars in libs/ (ChipDNA Mobile, CardEase XML Client, ID TECH Universal SDK, BBPOS) are not under the Apache License. Their vendors' terms apply.")
+            }
         }
     }
 }
@@ -88,7 +87,7 @@ dependencies {
     // AndroidX / Kotlin
     implementation("androidx.core:core-ktx:1.8.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.23")
+    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.23")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Misc

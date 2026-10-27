@@ -1,209 +1,220 @@
-# Fattmerchant Android SDK
+# Stax Android SDK
 
-![Release](https://jitpack.io/v/fattmerchantorg/fattmerchant-android-sdk.svg)
+[![Maven Central](https://img.shields.io/maven-central/v/com.staxpayments/cardpresent)](https://central.sonatype.com/artifact/com.staxpayments/cardpresent)
 
-The Fattmerchant Android SDK provides a simple way to accept a payment on your Android app by providing tokenization of payment methods. By using these tokens instead of card and bank information, you no longer have to worry about sending sensitive card information to your server.
+The Stax Android SDK takes card-present payments with a Stax card reader and tokenizes card and bank payment methods. Your app sends the token to your server, so your server never receives card or bank numbers.
 
 * [Requirements](#requirements)
 * [Installation](#installation)
 * [Getting Started](#getting-started)
 * [Testing](#testing)
-* [Taking a payment with a mobile reader](https://fattmerchantorg.github.io/fattmerchant-android-sdk/cardpresent/)
-
-![Tokenization Info](https://raw.githubusercontent.com/fattmerchantorg/Fattmerchant-iOS-SDK/master/assets/images/tokenization-info.png)
-
+* [Taking a payment with a card reader](cardpresent/README.md)
 
 ## <a name="requirements">Requirements</a>
 
-* Android API 29 (Android 10) or later for cardpresent
-* Android API 23 (Android 6) or later for tokenization
+* Android API 29 (Android 10) or later
 
 ## <a name="installation">Installation</a>
 
-#### Jitpack
-To install,
+The SDK is on Maven Central as `com.staxpayments:cardpresent`.
 
-1. Add the JitPack repository to your build file
+1. Make sure that `mavenCentral()` is in your repositories.
 
-```
-allprojects {
-  repositories {
-    ...
-    maven { url 'https://jitpack.io' }
-  }
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
 ```
 
-2. Add the following line to your `build.gradle` file
+2. Add the SDK to your module's `build.gradle.kts`.
 
-`implementation 'com.github.fattmerchantorg:fattmerchant-android-sdk:v1.2.0'`
+```kotlin
+dependencies {
+    implementation("com.staxpayments:cardpresent:2.7.5")
+}
+```
 
 ## <a name="getting-started">Getting Started</a>
-To accept a payment, you'll need to collect information from the customer, tokenize it, and send the token to your server. Your server will then be responsible for using the Fattmerchant API to run the transaction.
 
-#### Setup
+To accept a payment, your app collects the payment details from the customer and tokenizes them. Then your app sends the token to your server, and your server uses the Stax API to run the transaction.
 
-You'll first need to setup the `FattmerchantClient` for usage.  All you have to do here is set the `webPaymentsToken` field on the shared `FattmerchantConfiguration`. `FattmerchantClient` will then use that configuration by default.
+The samples use these imports. The SDK has 2 classes named `Omni`. Import `com.fattmerchant.android.Omni`.
+
+```kotlin
+import com.fattmerchant.android.InitParams
+import com.fattmerchant.android.Omni
+import com.fattmerchant.omni.Environment
+import com.fattmerchant.omni.data.models.BankAccount
+import com.fattmerchant.omni.data.models.CreditCard
+```
+
+Java also needs `import kotlin.Unit;`.
+
+#### Initialize
+
+Create an ephemeral API key on your server for each session. The SDK does not store the key.
 
 ##### Kotlin
 ```kotlin
-class MyApplication: Application() {
-   
-    override fun onCreate() { 
-        super.onCreate()
-        FattmerchantConfiguration.shared.webPaymentsToken = "mywebpaymentstoken"
-    }
-}
+val params = InitParams(
+    appContext = applicationContext,
+    application = application,
+    apiKey = ephemeralApiKey,
+    environment = Environment.LIVE
+)
+
+Omni.initialize(params, completion = {
+    // Omni is ready. Use Omni.shared() from here.
+}, error = { error ->
+    // Omni could not start. error.message is a summary, and error.detail has the cause.
+})
 ```
 
 ##### Java
-```Java
-public class MyApplication extends Application {
-    
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        FattmerchantConfiguration.shared.webPaymentsToken = "mywebpaymentstoken";
-    }
-}
+```java
+InitParams params = new InitParams(
+        application,               // appContext
+        application,               // application
+        ephemeralApiKey,           // apiKey
+        Environment.LIVE.INSTANCE, // environment
+        "appid"                    // appId
+);
+
+Omni.Companion.initialize(params, () -> {
+    // Omni is ready. Use Omni.Companion.shared() from here.
+    return Unit.INSTANCE;
+}, error -> {
+    // Omni could not start. error.getMessage() is a summary, and error.getDetail() has the cause.
+    return Unit.INSTANCE;
+}, null);
 ```
 
-Alternatively, you may create a configuration object and pass it to the new `FattmerchantApi` instance as you need it.
+#### Collect the payment details
 
-##### Kotlin
-```kotlin
-val config = FattmerchantConfiguration("https://apidev01.fattlabs.com", "fattwars")
-val client = FattmerchantClient(config)
-```
-
-##### Java
-```Java
-public class SampleClass {
-    FattmerchantConfiguration config = new FattmerchantConfiguration("https://apidev01.fattlabs.com", "fattwars");
-    FattmerchantClient client = new FattmerchantClient(config);
-}
-```
-
-#### Collect payment information
-You first want to collect credit card information and populate a `CreditCard` or a `BankAccount` object.
+Put the customer's details in a `CreditCard` or a `BankAccount`.
 
 ##### Kotlin
 ```kotlin
 val creditCard = CreditCard(
     personName = "Joan Parsnip",
-	cardNumber = "4111111111111111",
-	cardExp = "1230",
-	addressZip = "32822"
+    cardNumber = "4111111111111111",
+    cardExp = "1230",
+    addressZip = "32822"
 )
 
-// Or for a bank account...
 val bankAccount = BankAccount(
     personName = "Jim Parsnip",
-	bankType = "savings",
-	bankAccount = "9876543210",
-	bankRouting = "021000021",
-	addressZip = "32822"
+    bankType = "savings",
+    bankAccount = "9876543210",
+    bankRouting = "021000021",
+    addressZip = "32822"
 )
 ```
 
 ##### Java
-```Java
-public class SampleClass {
-    String personName = "Jim Parsnip";
-    String cardNumber = "4111111111111111";
-    String cardExp = "1230";
-    String addressZip = "32822"; 
-    
-    CreditCard creditCard = CreditCard(personName, cardNumber, cardExp, addressZip);
-    // Or for a bank account...
-    String personName = "Jim Parsnip";
-    String bankType = "savings";
-    String bankAccount = "9876543210";
-    String bankRouting = "021000021";
-    String addressZip = "32822";
-    BankAccount bankAccount = BankAccount(personName, bankType, bankAccount, bankRouting, addressZip);
-}
+
+Java must pass every constructor argument. Pass `null` for an optional field that you do not have.
+
+```java
+CreditCard creditCard = new CreditCard(
+        "Joan Parsnip",     // personName
+        "4111111111111111", // cardNumber
+        "1230",             // cardExp
+        "32822",            // addressZip
+        null,               // address1
+        null,               // address2
+        null,               // addressCity
+        null,               // addressState
+        null,               // customerId
+        null,               // note
+        null,               // phone
+        null                // email
+);
+
+BankAccount bankAccount = new BankAccount(
+        "Jim Parsnip",      // personName
+        "savings",          // bankType
+        "business",         // bankHolderType
+        "9876543210",       // bankAccount
+        "021000021",        // bankRouting
+        "32822",            // addressZip
+        null,               // bankName
+        null,               // address1
+        null,               // address2
+        null,               // addressCity
+        null,               // addressState
+        null,               // customerId
+        null,               // note
+        null,               // phone
+        null                // email
+);
 ```
 
 #### Get a payment method token
-Once you have a `CreditCard` object, call the `tokenize(:)` method on  `FattmerchantClient` object and pass a listener to be notified once tokenization is complete.
+
+Call `tokenize` with the card or the bank account. The completion receives a `PaymentMethod`, and its `id` is the token.
 
 ##### Kotlin
 ```kotlin
-var fattClient = FattmerchantClient(config)
-fattClient.tokenize(card) { (response) in
-  client.tokenize(card, object : FattmerchantClient.TokenizationListener {
-            override fun onPaymentMethodCreated(paymentMethod: PaymentMethod) {
-              // Success! You can now run a transaction with Fattmerchant using paymentToken as the PaymentMethod
-            }
-
-            override fun onPaymentMethodCreateError(errors: String) {
-                System.out.print(errors)
-            }
-        })
+Omni.shared()?.tokenize(creditCard, { paymentMethod ->
+    // Send paymentMethod.id to your server.
+}) { error ->
+    // Tokenization failed. error.message is a summary, and error.detail has the cause.
 }
 ```
 
 ##### Java
-```Java
-public class SampleClass {
-    public void performTokenization(CreditCard creditCard) {
-        FattmerchantClient fattClient = new FattmerchantClient(config);
-        fattClient.tokenize(creditCard, new FattmerchantClient.TokenizationListener() {
-            @Override
-            public void onPaymentMethodCreated(PaymentMethod paymentMethod) {
-                // Success! You can now run a transaction with Fattmerchant using paymentToken as the PaymentMethod
-            }
-            @Override
-            public void beforeValidate(String errors) {
-                System.out.print(errors);
-            }
-        });   
-    }
+```java
+Omni omni = Omni.Companion.shared();
+if (omni != null) {
+    omni.tokenize(creditCard, paymentMethod -> {
+        // Send paymentMethod.getId() to your server.
+        return Unit.INSTANCE;
+    }, error -> {
+        // Tokenization failed. error.getMessage() is a summary, and error.getDetail() has the cause.
+        return Unit.INSTANCE;
+    });
 }
 ```
 
-#### Using the token
-Now that you have the token representing the payment method, you can send it to your server to run a payment with it. You have to setup a way for your backend to accept the token and create a transaction with it.
+#### Use the token
+
+Your server receives the token and creates a transaction with the Stax API.
 
 ## <a name="testing">Testing</a>
-If you'd like to try tokenization without real payment information, you can use the `CreditCard.testCreditCard()` or `BankAccount.testBankAccount()` methods to get a test credit card or bank account.
+
+To try tokenization without real payment details, use the test card or the test bank account.
 
 ##### Kotlin
 ```kotlin
 val creditCard = CreditCard.testCreditCard()
-
 val bankAccount = BankAccount.testBankAccount()
 ```
 
 ##### Java
-```Java
-public class SampleClass {
-    CreditCard creditCard = CreditCard.testCreditCard();
-    
-    BankAccount bankAccount = BankAccount.testBankAccount();   
-}
+```java
+CreditCard creditCard = CreditCard.Companion.testCreditCard();
+BankAccount bankAccount = BankAccount.Companion.testBankAccount();
 ```
 
-If you want to test failures, you can use the following methods
+To test a failure, use the failing test card or the failing test bank account.
 
 ##### Kotlin
 ```kotlin
 val failingCreditCard = CreditCard.failingTestCreditCard()
-
 val failingBankAccount = BankAccount.failingTestBankAccount()
 ```
 
 ##### Java
-```Java
-public class SampleClass {
-    CreditCard failingCreditCard = CreditCard.failingTestCreditCard();
-    
-    BankAccount failingBankAccount = BankAccount.failingTestBankAccount();   
-}
+```java
+CreditCard failingCreditCard = CreditCard.Companion.failingTestCreditCard();
+BankAccount failingBankAccount = BankAccount.Companion.failingTestBankAccount();
 ```
 
-Or you can create the `CreditCard` or `BankAccount` object with the following testing payment information:
+You can also use these test numbers in a `CreditCard` or a `BankAccount`.
 
 #### Credit card numbers
 
@@ -216,11 +227,9 @@ Or you can create the `CreditCard` or `BankAccount` object with the following te
 |JCB|3569990010030400|3528327757705979|
 |Diners Club|30569309025904|30207712915383|
 
-> Use any CVV number for the above
-
-#### Bank routing & account numbers
+#### Bank routing and account numbers
 
 * Routing: 021000021
 * Account: 9876543210
 
-To test failing bank accounts, use the given routing number and any other account number
+To test a failing bank account, use this routing number with any other account number.
