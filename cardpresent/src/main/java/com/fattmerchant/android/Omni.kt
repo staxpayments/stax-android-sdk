@@ -1,10 +1,12 @@
 package com.fattmerchant.android
 
+import android.content.Context
 import com.fattmerchant.omni.AccessoryHelper
 import com.fattmerchant.omni.Environment
 import com.fattmerchant.omni.UsbAccessoryListener
 import com.fattmerchant.omni.data.models.OmniException
 import com.fattmerchant.omni.networking.OmniApi
+import io.ktor.client.engine.HttpClientEngine
 import kotlinx.coroutines.launch
 import com.fattmerchant.omni.Omni as CommonOmni
 import com.fattmerchant.omni.data.repository.MobileReaderDriverRepository as CommonMobileReaderDriverRepo
@@ -90,13 +92,24 @@ class Omni internal constructor(omniApi: OmniApi) : CommonOmni(omniApi) {
             completion: () -> Unit,
             error: (OmniException) -> Unit,
             usbListener: UsbAccessoryListener? = null
+        ) = initialize(params, environment, completion, error, usbListener, engine = null)
+
+        internal fun initialize(
+            params: Map<String, Any>,
+            environment: Environment,
+            completion: () -> Unit,
+            error: (OmniException) -> Unit,
+            usbListener: UsbAccessoryListener?,
+            engine: HttpClientEngine?
         ) {
             // Init the API
-            val omniApi = OmniApi()
+            val omniApi = OmniApi(engine)
 
             omniApi.environment = environment
 
             omniApi.token = params["apiKey"] as? String ?: ""
+
+            omniApi.userAgent = sdkUserAgent(params["appContext"] as? Context)
 
             // Create the shared Omni object
             val omni = Omni(omniApi)

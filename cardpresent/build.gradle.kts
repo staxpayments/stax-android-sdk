@@ -12,6 +12,11 @@ android {
         minSdk = 29
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        buildConfigField("String", "SDK_VERSION", "\"${property("VERSION_NAME")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     packaging {
@@ -101,4 +106,6 @@ dependencies {
     implementation("io.ktor:ktor-serialization-gson:2.3.6")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation("io.ktor:ktor-client-mock:2.3.6")
 }

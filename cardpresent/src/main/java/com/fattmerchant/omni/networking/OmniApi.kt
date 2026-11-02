@@ -1,5 +1,6 @@
 package com.fattmerchant.omni.networking
 
+import com.fattmerchant.android.sdkUserAgent
 import com.fattmerchant.omni.Environment
 import com.fattmerchant.omni.Environment.DEV
 import com.fattmerchant.omni.Environment.LIVE
@@ -15,9 +16,13 @@ import com.fattmerchant.omni.data.models.Self
 import com.fattmerchant.omni.data.models.Transaction
 import com.google.gson.FieldNamingPolicy
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -31,7 +36,9 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.gson.gson
 import org.json.JSONObject
 
-class OmniApi {
+class OmniApi internal constructor(engine: HttpClientEngine?) {
+
+    constructor() : this(engine = null)
 
     private fun baseUrl(): String = when (environment) {
         LIVE -> "https://apiprod.fattlabs.com/"
@@ -40,16 +47,22 @@ class OmniApi {
         else -> ""
     }
 
-    private val httpClient = HttpClient {
+    private val httpClientConfig: HttpClientConfig<*>.() -> Unit = {
         install(ContentNegotiation) {
             gson {
                 serializeNulls()
                 setFieldNamingStrategy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             }
         }
+        defaultRequest {
+            header(HttpHeaders.UserAgent, userAgent)
+        }
     }
 
+    private val httpClient = engine?.let { HttpClient(it, httpClientConfig) } ?: HttpClient(httpClientConfig)
+
     internal var token = ""
+    internal var userAgent = sdkUserAgent(context = null)
     internal var environment: Environment = LIVE
 
     /**
