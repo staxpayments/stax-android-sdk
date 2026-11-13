@@ -37,4 +37,4 @@ jobs:
         if: ${{ always() }} # IMPORTANT: Upload reports regardless of status
         with:
           name: reports
-          path: app/build/test-results
+          path: cardpresent/build/test-results
