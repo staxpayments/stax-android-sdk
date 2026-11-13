@@ -21,7 +21,7 @@ open class TransactionResult {
     /** True when transaction succeeded, false otherwise */
     var success: Boolean? = false
 
-    /** The place where the transaction took place. For example, "NMI" or "AWC" */
+    /** The place where the transaction took place. For example, "NMI" */
     var source: String = ""
 
     /**
@@ -189,10 +189,6 @@ open class TransactionResult {
                 source = "terminalservice.dejavoo"
             }
 
-            if(source == "AWC") {
-                isRefundable = false
-                isVoidable = false
-            }
             response = gatewayResponse
             token = externalId
 

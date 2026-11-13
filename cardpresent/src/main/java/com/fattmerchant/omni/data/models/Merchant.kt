@@ -10,9 +10,9 @@ class Merchant : Model {
     internal var registration: Map<String, Any>? = null
 
     /**
-     * Gets the 'emvTerminalPassword' option from the Merchant
+     * Gets the 'emv_password' option from the Merchant
      *
-     * The 'emvTerminalId' is used for authenticating with a third-party provider of mobile reader
+     * The 'emv_password' is the NMI security key that the ChipDNA driver uses
      */
     fun emvPassword(): String? = getOption("emv_password")
 

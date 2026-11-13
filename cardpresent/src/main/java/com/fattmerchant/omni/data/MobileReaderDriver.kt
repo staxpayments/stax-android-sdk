@@ -28,7 +28,7 @@ internal interface MobileReaderDriver {
     /** A list of serial numbers that this driver has previously connected to */
     var familiarSerialNumbers: MutableList<String>
 
-    /** The place where the transaction took place. For example, "NMI" or "AWC" */
+    /** The place where the transaction took place. For example, "NMI" */
     val source: String
 
     var mobileReaderConnectionStatusListener: MobileReaderConnectionStatusListener?
@@ -44,9 +44,6 @@ internal interface MobileReaderDriver {
      * Some `MobileReaderDriver`s, like NMI, support a deeper integration with Omni, such that Omni can facilitate the
      * void/refund. This allows the SDK to relieve itself of the responsibility of having to perform the refund directly
      * with the vendor (NMI), via the vendored SDK (ChipDNA).
-     *
-     * Other `MobileReaderDriver`s, like AWC, do not support this integration. For that reason, the SDK must perform
-     * the void/refund directly with AWC via the AWC sdk.
      */
     suspend fun isOmniRefundsSupported(): Boolean
 

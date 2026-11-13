@@ -6,7 +6,7 @@ import com.fattmerchant.omni.data.models.Transaction
 
 interface PaymentTerminalDriver {
 
-    /** The place where the transaction took place. For example, "NMI" or "AWC" */
+    /** The place where the transaction took place. For example, "NMI" */
     val source: String
 
     /**
