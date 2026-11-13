@@ -346,7 +346,12 @@ internal class ChipDnaDriver :
 
         if (saleOutcome(result[ParameterKeys.TransactionResult]) == SaleOutcome.RESULT_NOT_KNOWN) {
             val userRef = result[ParameterKeys.UserReference] ?: paymentRequestParams[ParameterKeys.UserReference]
-            log("Transaction result ${result[ParameterKeys.TransactionResult]} for user reference $userRef")
+            log(
+                "Transaction result unknown for Android payment. user_ref=$userRef " +
+                    "amount=${request.amount.dollarsString()} " +
+                    "cardease_ref=${result[ParameterKeys.CardEaseReference]} " +
+                    "transaction_id=${result[ParameterKeys.TransactionId]}"
+            )
             throw PerformTransactionException("Transaction result unknown. Check transaction $userRef before you retry.")
         }
 
