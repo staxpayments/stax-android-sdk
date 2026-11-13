@@ -1,8 +1,11 @@
 package com.fattmerchant.android.chipdna
 
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.call.body
-import io.ktor.client.request.get
+import io.ktor.client.request.forms.submitForm
+import io.ktor.http.parameters
 
 /**
  * Communicates with Transaction Gateway via the Direct Post API
@@ -21,10 +24,21 @@ internal class TransactionGateway {
          * @param transactionId the id of the Transaction within NMI
          * @return the expiration date of the card in the 'mmyy' format if found. Null otherwise
          */
-        suspend fun getTransactionCcExpiration(securityKey: String, transactionId: String): String? {
-            val client = HttpClient {}
-            val response = client.get(urlString = "$baseUrl?security_key=$securityKey&transaction_id=$transactionId")
-            return ChipDnaXMLTransactionParser.parseExpirationDate(response.body(), transactionId)
+        suspend fun getTransactionCcExpiration(
+            securityKey: String,
+            transactionId: String,
+            engine: HttpClientEngine = OkHttp.create()
+        ): String? {
+            return HttpClient(engine).use { client ->
+                val response = client.submitForm(
+                    url = baseUrl,
+                    formParameters = parameters {
+                        append("security_key", securityKey)
+                        append("transaction_id", transactionId)
+                    }
+                )
+                ChipDnaXMLTransactionParser.parseExpirationDate(response.body(), transactionId)
+            }
         }
     }
 }
