@@ -119,16 +119,8 @@ open class Omni internal constructor(internal var omniApi: OmniApi) {
 
             omniApi.getMobileReaderSettings {
                 // error(OmniException("Could not get reader settings", it.message))
-            }?.let { mobileReaderDetails ->
-                mobileReaderDetails.nmi?.let {
-                    mutatedArgs["nmi"] = it
-                }
-
-                InitializeDrivers(
-                    mobileReaderDriverRepository,
-                    mutatedArgs,
-                    coroutineContext
-                ).start(error)
+            }?.nmi?.let {
+                mutatedArgs["nmi"] = it
             }
 
             InitializeDrivers(
