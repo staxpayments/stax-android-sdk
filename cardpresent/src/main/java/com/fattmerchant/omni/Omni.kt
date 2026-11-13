@@ -104,12 +104,6 @@ open class Omni internal constructor(internal var omniApi: OmniApi) {
 
             val mutatedArgs = args.toMutableMap()
 
-            // AWC
-            val awcDetails = MobileReaderDetails.AWCDetails()
-            merchant.emvTerminalId()?.let { awcDetails.terminalId = it }
-            merchant.emvTerminalSecret()?.let { awcDetails.terminalSecret = it }
-            mutatedArgs["awc"] = awcDetails
-
             // NMI
             val nmiDetails = MobileReaderDetails.NMIDetails()
             merchant.emvPassword()?.let { nmiDetails.securityKey = it }
@@ -128,10 +122,6 @@ open class Omni internal constructor(internal var omniApi: OmniApi) {
             }?.let { mobileReaderDetails ->
                 mobileReaderDetails.nmi?.let {
                     mutatedArgs["nmi"] = it
-                }
-
-                mobileReaderDetails.anywhereCommerce?.let {
-                    mutatedArgs["awc"] = it
                 }
 
                 InitializeDrivers(

@@ -84,11 +84,6 @@ dependencies {
     implementation("io.reactivex.rxjava3:rxjava:3.1.8")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.0")
 
-    // Google Play Services
-    implementation("com.google.android.play:integrity:1.6.0")
-    implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation("com.google.android.gms:play-services-safetynet:18.1.0")
-
     // AndroidX / Kotlin
     implementation("androidx.core:core-ktx:1.8.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

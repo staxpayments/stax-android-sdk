@@ -17,20 +17,6 @@ class Merchant : Model {
     fun emvPassword(): String? = getOption("emv_password")
 
     /**
-     * Gets the 'emvTerminalSecret' option from the Merchant
-     *
-     * The 'emvTerminalSecret' is used for authenticating with a third-party provider of mobile reader
-     */
-    fun emvTerminalSecret(): String? = getOption("emv_terminal_secret")
-
-    /**
-     * Gets the 'emvTerminalSecret' option from the Merchant
-     *
-     * The 'emvTerminalId' is used for authenticating with a third-party provider of mobile reader
-     */
-    fun emvTerminalId(): String? = getOption("emv_terminal_id")
-
-    /**
      * Attempts to get a value from [options] at the given [key]
      *
      * @param T the type that the value should be cast to

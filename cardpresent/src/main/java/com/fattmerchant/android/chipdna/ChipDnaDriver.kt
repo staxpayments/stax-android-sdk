@@ -120,7 +120,7 @@ internal class ChipDnaDriver :
         val apiKey = nmiDetails.securityKey
 
         if (apiKey.isBlank()) {
-            throw InitializeMobileReaderDriverException("emvTerminalSecret not found")
+            throw InitializeMobileReaderDriverException("nmi securityKey not found")
         }
 
         val params = Parameters().apply {
