@@ -1,0 +1,60 @@
+# One-way sync to github.com/staxpayments/stax-android-sdk (CMD-5605). The tenant
+# repo is canonical; the mirrored copy of this file never runs there (Actions are off).
+# Only master and stable version tags whose commit is on master go public.
+name: public-mirror
+on:
+  push:
+    branches: [master]
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: push only this tag (seeding)
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  gate:
+    if: github.server_url != 'https://github.com'
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TAG" ]; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::notice::$TAG is not a stable version tag, not mirrored"
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git merge-base --is-ancestor "refs/tags/$TAG" origin/master; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$TAG is not on master, not mirrored"
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+          fi
+  mirror:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
+    uses: stax-core/cicd-actions/.github/workflows/public-mirror.yaml@v2
+    with:
+      mirror_org: staxpayments
+      branches: master
+      tag: ${{ inputs.tag || '' }}
+    secrets: inherit
